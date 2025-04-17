@@ -102,7 +102,7 @@ class Tracker:
                                 "\nThere are detections with and without label!"
                             )
                         continue
-                    distance = self.distance_function(detection, obj)
+                    distance = self.distance_function(detection.points, obj.estimate)
                     # Cap detections and objects with no chance of getting matched so we
                     # dont force the hungarian algorithm to minimize them and therefore
                     # introduce the possibility of sub optimal results.
@@ -276,9 +276,8 @@ class TrackedObject:
 
     @property
     def estimate(self):
-        positions = self.filter.x.T.flatten()[: self.dim_z].reshape(-1, 2)
-        velocities = self.filter.x.T.flatten()[self.dim_z :].reshape(-1, 2)
-        return positions
+        x_flat = self.filter.x.ravel()
+        return np.asarray(x_flat[: self.dim_z].reshape(-1, 2), dtype=np.float32)
 
     @property
     def live_points(self):
@@ -301,7 +300,7 @@ class TrackedObject:
             points_over_threshold_mask = detection.scores > self.detection_threshold
             matched_sensors_mask = np.array(
                 [[m, m] for m in points_over_threshold_mask]
-            ).flatten()
+            ).ravel()
             H_pos = np.diag(matched_sensors_mask).astype(
                 float
             )  # We measure x, y positions
@@ -326,7 +325,7 @@ class TrackedObject:
         # eventually coverge to the real detections.
         detected_at_least_once_mask = np.array(
             [[m, m] for m in self.detected_at_least_once_points]
-        ).flatten()
+        ).ravel()
         self.filter.x[self.dim_z :][np.logical_not(detected_at_least_once_mask)] = 0
         self.detected_at_least_once_points = np.logical_or(
             self.detected_at_least_once_points, points_over_threshold_mask
@@ -364,7 +363,7 @@ class TrackedObject:
 
 class Detection:
     def __init__(self, points: np.array, scores=None, data=None, label=None):
-        self.points = points
+        self.points = np.asarray(points, dtype=np.float32)
         self.scores = scores
         self.data = data
         self.label = label
