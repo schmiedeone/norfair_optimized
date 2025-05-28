@@ -19,7 +19,7 @@ class Tracker:
         detection_threshold: float = 0,
         filter_factory: "FilterPyKalmanFilterFactory" = FilterPyKalmanFilterFactory(),
         past_detections_length: int = 4,
-        constants: Optional[dict] = None,
+        constants: dict = {},
     ):
         self.tracked_objects: Sequence["TrackedObject"] = []
         self.distance_function = distance_function
@@ -87,60 +87,60 @@ class Tracker:
 
         return [p for p in self.tracked_objects if not p.is_initializing]
 
-def update_objects_in_place(
-      self,
-      objects: Sequence["TrackedObject"],
-      detections: Optional[List["Detection"]],
-  ):
-    if detections is None or len(detections) == 0:
-      return []
-    # print(detections, objects)
-    # Extract first point only (for simplicity)
-    det_points = np.array([d.points for d in detections], dtype=np.float32)
-    obj_points = np.array([o.estimate[0] for o in objects], dtype=np.float32)
-    if obj_points.shape[0] == 0:
-      return detections
-    distance_matrix = np.linalg.norm(
-        det_points[:, None, :] - obj_points[None, :, :], axis=-1)
+    def update_objects_in_place(
+          self,
+          objects: Sequence["TrackedObject"],
+          detections: Optional[List["Detection"]],
+      ):
+        if detections is None or len(detections) == 0:
+          return []
+        # print(detections, objects)
+        # Extract first point only (for simplicity)
+        det_points = np.array([d.points for d in detections], dtype=np.float32)
+        obj_points = np.array([o.estimate[0] for o in objects], dtype=np.float32)
+        if obj_points.shape[0] == 0:
+          return detections
+        distance_matrix = np.linalg.norm(
+            det_points[:, None, :] - obj_points[None, :, :], axis=-1)
 
-    y_coords = det_points[:, 1][:, None]
-    scaling_factors = np.ones_like(distance_matrix)
-    scaling_factors = np.where(
-        y_coords > self.constants["BELT_BOUNDARY_2"], self.constants["BELT_SCALE_DOWN_FACTOR_2"], scaling_factors)
-    scaling_factors = np.where((y_coords > self.constants["BELT_BOUNDARY_1"]) & (
-        y_coords <= self.constants["BELT_BOUNDARY_2"]), self.constants["BELT_SCALE_DOWN_FACTOR_1"], scaling_factors)
+        y_coords = det_points[:, 1][:, None]
+        scaling_factors = np.ones_like(distance_matrix)
+        scaling_factors = np.where(
+            y_coords > self.constants["beltBoundary2"], self.constants["beltScaleDownFactor2"], scaling_factors)
+        scaling_factors = np.where((y_coords > self.constants["beltBoundary1"]) & (
+            y_coords <= self.constants["beltBoundary2"]), self.constants["beltScaleDownFactor1"], scaling_factors)
 
-    distance_matrix *= scaling_factors
+        distance_matrix *= scaling_factors
 
-    if np.isnan(distance_matrix).any():
-      print("\n[red]Received NaN in distance matrix[/red]")
-      exit()
-    if np.isinf(distance_matrix).any():
-      print("\n[red]Received Inf in distance matrix[/red]")
-      exit()
+        if np.isnan(distance_matrix).any():
+          print("\n[red]Received NaN in distance matrix[/red]")
+          exit()
+        if np.isinf(distance_matrix).any():
+          print("\n[red]Received Inf in distance matrix[/red]")
+          exit()
 
-    # For debugging minimum distances per object
-    if distance_matrix.any():
-      for i, minimum in enumerate(distance_matrix.min(axis=0)):
-        objects[i].current_min_distance = minimum if minimum < self.distance_threshold else None
+        # For debugging minimum distances per object
+        if distance_matrix.any():
+          for i, minimum in enumerate(distance_matrix.min(axis=0)):
+            objects[i].current_min_distance = minimum if minimum < self.distance_threshold else None
 
-    matched_det_indices, matched_obj_indices = self.match_dets_and_objs(
-        distance_matrix)
-    unmatched_detections = [d for i, d in enumerate(
-        detections) if i not in matched_det_indices]
+        matched_det_indices, matched_obj_indices = self.match_dets_and_objs(
+            distance_matrix)
+        unmatched_detections = [d for i, d in enumerate(
+            detections) if i not in matched_det_indices]
 
-    # Handle matched detections
-    for match_det_idx, match_obj_idx in zip(matched_det_indices, matched_obj_indices):
-      match_distance = distance_matrix[match_det_idx, match_obj_idx]
-      if match_distance < self.distance_threshold:
-        matched_detection = detections[match_det_idx]
-        matched_object = objects[match_obj_idx]
-        matched_object.hit(matched_detection, period=self.period)
-        matched_object.last_distance = match_distance
-      else:
-        unmatched_detections.append(detections[match_det_idx])
+        # Handle matched detections
+        for match_det_idx, match_obj_idx in zip(matched_det_indices, matched_obj_indices):
+          match_distance = distance_matrix[match_det_idx, match_obj_idx]
+          if match_distance < self.distance_threshold:
+            matched_detection = detections[match_det_idx]
+            matched_object = objects[match_obj_idx]
+            matched_object.hit(matched_detection, period=self.period)
+            matched_object.last_distance = match_distance
+          else:
+            unmatched_detections.append(detections[match_det_idx])
 
-    return unmatched_detections
+        return unmatched_detections
 
     def match_dets_and_objs(self, distance_matrix: np.array):
         """Matches detections with tracked_objects from a distance matrix
