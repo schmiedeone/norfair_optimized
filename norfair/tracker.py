@@ -19,14 +19,30 @@ class Tracker:
         detection_threshold: float = 0,
         filter_factory: "FilterPyKalmanFilterFactory" = FilterPyKalmanFilterFactory(),
         past_detections_length: int = 4,
-        constants: dict = {},
+        constants: Optional[float] = None,
     ):
         self.tracked_objects: Sequence["TrackedObject"] = []
         self.distance_function = distance_function
         self.hit_counter_max = hit_counter_max
         self.pointwise_hit_counter_max = pointwise_hit_counter_max
         self.filter_factory = filter_factory
-        self.constants = constants if constants is not None else {}
+        self.constants = {
+            "beltBoundary1": 190,
+            "beltBoundary2": 440,
+            "beltScaleDownFactor1": 0.25,
+            "beltScaleDownFactor2": 0.5,
+        }
+        if constants is not None and isinstance(constants, list):
+            if len(constants) != 4:
+                raise ValueError(
+                    f"Argument `constants` should be a list of 4 values, but got {len(constants)}."
+                )
+            self.constants = {
+                "beltBoundary1": constants[0],
+                "beltBoundary2": constants[1],
+                "beltScaleDownFactor1": constants[2],
+                "beltScaleDownFactor2": constants[3],
+            }
         if past_detections_length >= 0:
             self.past_detections_length = past_detections_length
         else:
