@@ -19,7 +19,7 @@ class Tracker:
         detection_threshold: float = 0,
         filter_factory: "FilterPyKalmanFilterFactory" = FilterPyKalmanFilterFactory(),
         past_detections_length: int = 4,
-        constants: List[float] = None,
+        constants: List[float] = None
     ):
         self.tracked_objects: Sequence["TrackedObject"] = []
         self.distance_function = distance_function
@@ -35,12 +35,12 @@ class Tracker:
             "beltBoundary1": constants[0],
             "beltBoundary2": constants[1],
             "beltScaleDownFactor1": constants[2],
-            "beltScaleDownFactor2": constants[3],
+            "beltScaleDownFactor2": constants[3]
         } if constants is not None else {
             "beltBoundary1": 190,
             "beltBoundary2": 440,
             "beltScaleDownFactor1": 0.25,
-            "beltScaleDownFactor2": 0.50,
+            "beltScaleDownFactor2": 0.50
         }
         if past_detections_length >= 0:
             self.past_detections_length = past_detections_length
