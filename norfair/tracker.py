@@ -19,7 +19,7 @@ class Tracker:
         detection_threshold: float = 0,
         filter_factory: "FilterPyKalmanFilterFactory" = FilterPyKalmanFilterFactory(),
         past_detections_length: int = 4,
-        constants: list[float] = None,
+        constants: List[float] = None,
     ):
         self.tracked_objects: Sequence["TrackedObject"] = []
         self.distance_function = distance_function
